@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const assetPathPrefix = "/assets";
 const imgHero = `${assetPathPrefix}/0addd.png`;
@@ -79,6 +79,95 @@ function MoonIcon() {
     </svg>
   );
 }
+const DESIGNS = [
+  { img: imgRectangle, key: "Césped", name: "Césped Natural", desc: "Textura orgánica vegetal para terrazas que se sienten jardín." },
+  { img: imgRectangle1, key: "Piedra", name: "Piedra Natural", desc: "Acabado mineral premium, frío al tacto y sobrio a la vista." },
+  { img: imgRectangle2, key: "Madera", name: "Madera Natural", desc: "Calidez y textura viva sin mantenimiento de deck." },
+  { img: imgRectangle3, key: "Ladrillo", name: "Ladrillo Visto", desc: "Estética urbana industrial sobre cualquier cubierta." },
+];
+
+const FEATURES = [
+  { icon: imgShield, label: "Impermeable", sub: "Protección total" },
+  { icon: imgStar, label: "Decorativa", sub: "Estética premium" },
+  { icon: imgZap, label: "Resistente", sub: "Alta dureza superficial" },
+  { icon: imgClock, label: "Durable", sub: "+10 años garantizados" },
+  { icon: imgLeaf, label: "Ecológica", sub: "Material sustentable" },
+];
+
+const RATE_PER_M2 = 14; // USD aprox. por m² instalado (referencial)
+
+function useReveal() {
+  useEffect(() => {
+    const els = document.querySelectorAll(".reveal");
+    const io = new IntersectionObserver(
+      (entries) => entries.forEach((e) => e.isIntersecting && (e.target.classList.add("in"), io.unobserve(e.target))),
+      { threshold: 0.15 }
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, []);
+}
+
+function Roll({ children }: { children: string }) {
+  return (
+    <span className="roll" aria-hidden="false">
+      <span>{children}</span>
+      <span aria-hidden="true">{children}</span>
+    </span>
+  );
+}
+
+function Eyebrow({ children }: { children: string }) {
+  return (
+    <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6b6b] dark:text-[#9a9a9a]" aria-hidden="true">
+      {children}
+    </p>
+  );
+}
+
+const btnDark =
+  "group inline-flex items-center gap-2 rounded-full bg-[#111111] dark:bg-white px-6 py-3 font-sans text-sm font-medium text-white dark:text-[#111111] transition-transform duration-200 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4ade80]";
+const btnGhost =
+  "group inline-flex items-center gap-2 rounded-full border border-black/15 dark:border-white/20 bg-white/50 dark:bg-white/5 backdrop-blur px-6 py-3 font-sans text-sm font-medium text-[#111111] dark:text-white transition-colors duration-200 hover:bg-white dark:hover:bg-white/10 active:scale-95";
+const fieldCls =
+  "w-full rounded-control border border-black/10 dark:border-[#383838] bg-white dark:bg-[#222222] px-4 py-3 font-sans text-sm text-[#111111] dark:text-white placeholder:text-[#8a8a8a] focus:border-[#111111] dark:focus:border-white focus:outline-none transition-colors";
+
+// Words light up one by one as the paragraph scrolls through the viewport
+function ScrollWords({ text, className }: { text: string; className: string }) {
+  const ref = useRef<HTMLParagraphElement>(null);
+  const [progress, setProgress] = useState(0);
+  useEffect(() => {
+    let raf = 0;
+    const update = () => {
+      const el = ref.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const vh = window.innerHeight;
+      // 0 when top enters at 85% of viewport, 1 when bottom reaches 40%
+      const p = (vh * 0.85 - r.top) / (r.height + vh * 0.45);
+      setProgress(Math.min(1, Math.max(0, p)));
+    };
+    const onScroll = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(update); };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener("scroll", onScroll); window.removeEventListener("resize", onScroll); };
+  }, []);
+  const words = text.split(" ");
+  return (
+    <p ref={ref} className={className} aria-label={text}>
+      {words.map((w, i) => (
+        <span
+          key={i}
+          aria-hidden="true"
+          className={`transition-colors duration-300 ${i / words.length < progress ? "text-[#111111] dark:text-white" : "text-[#c9c9c9] dark:text-[#3a3a3a]"}`}
+        >
+          {w}{i < words.length - 1 ? " " : ""}
+        </span>
+      ))}
+    </p>
+  );
+}
 
 export default function App() {
   const sectionIds = NAV_LINKS.map((l) => l.id);
@@ -87,8 +176,10 @@ export default function App() {
   const [dark, setDark] = useState(() =>
     typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches
   );
+  const [tab, setTab] = useState(0);
+  const [area, setArea] = useState(120);
+  useReveal();
 
-  // Sync dark class on <html>
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
   }, [dark]);
@@ -112,479 +203,335 @@ export default function App() {
     return () => { document.body.style.overflow = ""; };
   }, [menuOpen]);
 
+  const rolls = Math.ceil(area / 10);
+  const years = 10;
+
   return (
-    <div className="bg-[#f8fafc] dark:bg-[#111111] flex flex-col items-start w-full min-h-screen transition-colors duration-300">
+    <div className="min-h-screen w-full bg-[#fbfaf8] dark:bg-[#111111] font-sans text-[#111111] dark:text-white transition-colors duration-300 selection:bg-[#111111] selection:text-white dark:selection:bg-white dark:selection:text-[#111111]">
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-full focus:bg-[#111111] focus:text-white dark:focus:bg-white dark:focus:text-[#111111] text-sm font-medium">Saltar al contenido</a>
 
-      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-full focus:bg-[#111111] focus:text-white dark:focus:bg-white dark:focus:text-[#111111] font-['Inter'] text-sm font-medium">Saltar al contenido</a>
-
-      {/* ── Nav ── */}
-      <nav
-        className="bg-white/70 dark:bg-[#111111]/70 backdrop-blur-xl backdrop-saturate-150 border-black/5 dark:border-white/[0.06] border-b flex h-[64px] items-center justify-between px-5 md:px-[80px] w-full shrink-0 sticky top-0 z-50 transition-colors duration-300"
-        aria-label="Navegación principal"
-      >
-        <a
-          href="#inicio"
-          onClick={(e) => handleNavClick(e, "inicio")}
-          className="flex items-center shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4ade80] rounded-control"
-          aria-label="Inicio — Techomax"
-        >
-          <span className="relative block w-[79px] h-[34px] md:w-[96px] md:h-[41px]">
-            <span className="absolute left-0 top-0 flex flex-col items-center w-[685px] h-[296px] origin-top-left scale-[0.115] md:scale-[0.14]">
-              <img src={imgGroup} alt="" className="block w-[382.425px] h-[196.137px] max-w-none" />
-              <span className="mt-[52px] font-['Lexend_Zetta:Bold'] font-bold text-[83px] leading-[48px] text-[blue] whitespace-nowrap">TECHOMAX</span>
+      {/* ── Nav (floating pill) ── */}
+      <header className="fixed inset-x-0 top-3 z-50 px-3 md:px-6">
+        <nav aria-label="Navegación principal" className="mx-auto flex h-14 max-w-[1200px] items-center justify-between rounded-full border border-black/5 dark:border-white/[0.07] bg-white/70 dark:bg-[#1a1a1a]/70 pl-5 pr-2 backdrop-blur-xl backdrop-saturate-150 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.15)]">
+          <a href="#inicio" onClick={(e) => handleNavClick(e, "inicio")} className="flex items-center shrink-0 rounded-control" aria-label="Inicio — Techomax">
+            <span className="relative block w-[79px] h-[34px]">
+              <span className="absolute left-0 top-0 flex flex-col items-center w-[685px] h-[296px] origin-top-left scale-[0.115]">
+                <img src={imgGroup} alt="" className="block w-[382.425px] h-[196.137px] max-w-none" />
+                <span className="mt-[52px] font-['Lexend_Zetta:Bold'] font-bold text-[83px] leading-[48px] text-[blue] whitespace-nowrap">TECHOMAX</span>
+              </span>
             </span>
-          </span>
-        </a>
-
-        {/* Desktop links */}
-        <div className="hidden md:flex gap-[32px] items-center shrink-0" role="list">
-          {NAV_LINKS.map(({ label, id }) => {
-            const isActive = activeSection === id;
-            return (
-              <a
-                key={id}
-                href={`#${id}`}
-                role="listitem"
-                onClick={(e) => handleNavClick(e, id)}
-                className={[
-                  "relative font-['Inter'] font-medium text-sm whitespace-nowrap transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#4ade80] rounded-control",
-                  isActive
-                    ? "text-[#0f172a] dark:text-white"
-                    : "text-[#64748b] dark:text-[#94a3b8] hover:text-[#0f172a] dark:hover:text-white",
-                ].join(" ")}
-                aria-current={isActive ? "page" : undefined}
-              >
-                {label}
-                <span
-                  className={[
-                    "absolute -bottom-[8px] left-1/2 -translate-x-1/2 w-1 h-1 bg-[#4ade80] rounded-full transition-all duration-300",
-                    isActive ? "opacity-100 scale-100" : "opacity-0 scale-0",
-                  ].join(" ")}
-                  style={{ transformOrigin: "center" }}
-                  aria-hidden="true"
-                />
-              </a>
-            );
-          })}
-          <a
-            href="#contacto"
-            onClick={(e) => handleNavClick(e, "contacto")}
-            className="bg-[#111111] dark:bg-white flex items-center px-[16px] py-[7px] rounded-full shrink-0 font-['Inter'] font-medium text-white dark:text-[#111111] text-sm whitespace-nowrap transition-all duration-200 hover:bg-[#4ade80] hover:text-[#0a0f1a] dark:hover:bg-[#4ade80] active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22c55e]"
-          >
-            Consultar Ahora
           </a>
-        </div>
 
-        {/* Right controls: dark toggle + hamburger */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setDark((v) => !v)}
-            aria-label={dark ? "Activar modo claro" : "Activar modo oscuro"}
-            className="flex items-center justify-center w-9 h-9 rounded-full text-[#64748b] dark:text-[#94a3b8] hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4ade80]"
-          >
-            <span className={`transition-all duration-300 ${dark ? "opacity-100 rotate-0" : "opacity-0 rotate-90 absolute"}`}>
-              <SunIcon />
-            </span>
-            <span className={`transition-all duration-300 ${!dark ? "opacity-100 rotate-0" : "opacity-0 -rotate-90 absolute"}`}>
-              <MoonIcon />
-            </span>
-          </button>
+          <ul className="hidden md:flex items-center gap-1">
+            {NAV_LINKS.map(({ label, id }) => (
+              <li key={id}>
+                <a
+                  href={`#${id}`}
+                  onClick={(e) => handleNavClick(e, id)}
+                  aria-current={activeSection === id ? "true" : undefined}
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition-colors duration-200 ${
+                    activeSection === id
+                      ? "bg-black/[0.06] dark:bg-white/10 text-[#111111] dark:text-white"
+                      : "text-[#5c5c5c] dark:text-[#a3a3a3] hover:text-[#111111] dark:hover:text-white"
+                  }`}
+                >
+                  {label}
+                </a>
+              </li>
+            ))}
+          </ul>
 
-          {/* Hamburger (mobile only) */}
-          <button
-            className="md:hidden flex flex-col justify-center items-center w-10 h-10 gap-[5px] rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4ade80]"
-            aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((v) => !v)}
-          >
-            <span className={`block w-5 h-[1.5px] bg-[#0f172a] dark:bg-white rounded-full transition-all duration-300 origin-center ${menuOpen ? "rotate-45 translate-y-[3.25px]" : ""}`} />
-            <span className={`block w-5 h-[1.5px] bg-[#0f172a] dark:bg-white rounded-full transition-all duration-200 ${menuOpen ? "opacity-0 scale-x-0" : ""}`} />
-            <span className={`block w-5 h-[1.5px] bg-[#0f172a] dark:bg-white rounded-full transition-all duration-300 origin-center ${menuOpen ? "-rotate-45 -translate-y-[3.25px]" : ""}`} />
-          </button>
-        </div>
-      </nav>
-
-      {/* Mobile drawer */}
-      <div
-        className={`md:hidden fixed inset-0 z-40 transition-opacity duration-300 ${menuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
-        aria-hidden={!menuOpen}
-      >
-        <div className="absolute inset-0 bg-black/50" onClick={() => setMenuOpen(false)} />
-        <div className={`absolute top-[64px] left-0 right-0 bg-white/90 dark:bg-[#111111]/90 backdrop-blur-xl border-b border-black/5 dark:border-white/[0.06] flex flex-col transition-transform duration-300 ${menuOpen ? "translate-y-0" : "-translate-y-4"}`}>
-          {NAV_LINKS.map(({ label, id }) => {
-            const isActive = activeSection === id;
-            return (
-              <a
-                key={id}
-                href={`#${id}`}
-                onClick={(e) => handleNavClick(e, id)}
-                className={[
-                  "px-6 py-4 font-['Inter'] font-medium text-base transition-colors duration-150",
-                  isActive ? "text-[#0f172a] dark:text-white" : "text-[#64748b] dark:text-[#94a3b8]",
-                ].join(" ")}
-                aria-current={isActive ? "page" : undefined}
-              >
-                {label}
-              </a>
-            );
-          })}
-          <div className="p-5">
-            <a
-              href="#contacto"
-              onClick={(e) => handleNavClick(e, "contacto")}
-              className="bg-[#111111] dark:bg-white flex items-center justify-center w-full px-[20px] py-[12px] rounded-full font-['Inter'] font-medium text-white dark:text-[#111111] text-sm transition-all duration-200 hover:bg-[#4ade80] hover:text-[#0a0f1a] active:scale-95"
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setDark((d) => !d)}
+              aria-label={dark ? "Activar modo claro" : "Activar modo oscuro"}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-[#5c5c5c] dark:text-[#a3a3a3] hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
             >
-              Consultar Ahora
+              {dark ? <SunIcon /> : <MoonIcon />}
+            </button>
+            <a href="#contacto" onClick={(e) => handleNavClick(e, "contacto")} className={`${btnDark} hidden md:inline-flex !py-2.5 !px-5`}>
+              <Roll>Cotizar</Roll>
             </a>
-          </div>
-        </div>
-      </div>
-
-      <main id="main" className="w-full flex flex-col items-start">
-      {/* ── Hero ── */}
-      <section
-        id="inicio"
-        className="bg-white flex flex-col justify-end md:justify-center overflow-hidden px-5 md:px-[80px] pb-10 pt-16 md:py-0 relative w-full min-h-[480px] md:h-[620px]"
-        aria-label="Bienvenida"
-      >
-        <img alt="Vista aérea de techo con membrana decorativa" className="absolute inset-0 max-w-none object-cover pointer-events-none size-full" src={imgHero} />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/20 md:bg-none md:bg-gradient-to-r md:from-white md:to-[rgba(255,255,255,0)] md:to-1/2 dark:!bg-none dark:!from-transparent" aria-hidden="true" />
-        <div aria-hidden="true" className="absolute inset-0 pointer-events-none">
-          <img alt="" className="absolute max-w-none object-cover size-full" src={imgHero1} />
-          <div className="absolute bg-gradient-to-l from-[rgba(10,15,26,0)] inset-0 to-[rgba(10,15,26,0.82)]" />
-        </div>
-        <div className="flex flex-col gap-5 md:gap-[28px] items-start relative w-full md:w-[560px]">
-          <div className="bg-[#ecfdf5]/90 border border-[rgba(74,222,128,0.3)] flex items-center px-[12px] py-[5px] rounded-full shrink-0">
-            <p className="font-['Inter'] font-semibold text-[#15803d] dark:text-[#4ade80] text-xs uppercase whitespace-nowrap tracking-wider">Deco-Membrana</p>
-          </div>
-          <div className="flex flex-col gap-[4px] items-start">
-            <h1 className="font-['Inter'] font-extrabold text-4xl sm:text-[48px] md:text-[56px] text-white leading-tight">Impermeabilización</h1>
-            <span className="font-['Inter'] font-extrabold text-4xl sm:text-[48px] md:text-[56px] text-[#4ade80] leading-tight block">con Diseño</span>
-          </div>
-          <p className="font-['Inter'] font-normal text-white/80 text-sm md:text-base max-w-[460px] leading-relaxed">
-            La primera membrana que además de proteger, transforma las superficies en espacios decorativos. Tecnología premium con terminación estética.
-          </p>
-          <div className="flex flex-wrap gap-3 items-center">
-            <a href="#diseños" onClick={(e) => handleNavClick(e, "diseños")}
-              className="bg-[#4ade80] flex items-center px-6 py-3 md:px-[28px] md:py-[14px] rounded-full font-['Inter'] font-bold text-[#0a0f1a] text-sm whitespace-nowrap transition-all duration-200 hover:bg-[#22c55e] hover:shadow-lg hover:-translate-y-0.5 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22c55e]">
-              Ver Diseños
-            </a>
-            <a href="#contacto" onClick={(e) => handleNavClick(e, "contacto")}
-              className="bg-white/20 backdrop-blur-sm border border-white/40 flex items-center px-6 py-3 md:px-[28px] md:py-[14px] rounded-full font-['Inter'] font-semibold text-white text-sm whitespace-nowrap transition-all duration-200 hover:bg-white/30 hover:shadow-md hover:-translate-y-0.5 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4ade80]">
-              Solicitar Cotización
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Features strip ── */}
-      <div
-        className="bg-white dark:bg-[#1a1a1a] border-[#e2e8f0] dark:border-[#2e2e2e] border-b border-t flex flex-wrap gap-x-6 gap-y-5 items-start justify-between px-5 md:px-[80px] py-6 md:py-[32px] w-full transition-colors duration-300"
-        aria-label="Características principales"
-      >
-        {[
-          { icon: imgShield, label: "Impermeable", sub: "Protección total", alt: "Escudo" },
-          { icon: imgStar, label: "Decorativa", sub: "Estética premium", alt: "Estrella" },
-          { icon: imgZap, label: "Resistente", sub: "Alta dureza superficial", alt: "Rayo" },
-          { icon: imgClock, label: "Durable", sub: "+10 años garantizados", alt: "Reloj" },
-          { icon: imgLeaf, label: "Ecológica", sub: "Material sustentable", alt: "Hoja" },
-        ].map(({ icon, label, sub, alt }) => (
-          <div key={label} className="flex gap-3 items-center w-[calc(50%-12px)] sm:w-auto">
-            <div className="bg-[#ecfdf5] dark:bg-[#1f2f1f] flex flex-col items-center justify-center rounded-control shrink-0 size-[36px]" aria-hidden="true">
-              <img src={icon} alt={alt} className="block size-[18px]" />
-            </div>
-            <div className="flex flex-col gap-[2px] items-start">
-              <p className="font-['Inter'] font-bold text-[#0f172a] dark:text-white text-sm whitespace-nowrap">{label}</p>
-              <p className="font-['Inter'] font-normal text-[#64748b] dark:text-[#94a3b8] text-xs whitespace-nowrap">{sub}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Designs ── */}
-      <section
-        id="diseños"
-        className="bg-white dark:bg-[#111111] flex flex-col gap-8 md:gap-[48px] items-center px-5 py-10 md:p-[80px] w-full transition-colors duration-300"
-        aria-labelledby="designs-heading"
-      >
-        <div className="flex flex-col gap-3 items-center text-center">
-          <div className="bg-[#ecfdf5] dark:bg-[#1f2f1f] flex items-center px-[12px] py-[5px] rounded-full" aria-hidden="true">
-            <p className="font-['Inter'] font-semibold text-[#15803d] dark:text-[#4ade80] text-xs uppercase tracking-wider">Catálogo</p>
-          </div>
-          <h2 id="designs-heading" className="font-['Inter'] font-extrabold text-[#0f172a] dark:text-white text-[28px] md:text-[40px]">
-            Diseños Disponibles
-          </h2>
-          <p className="font-['Inter'] font-normal text-[#64748b] dark:text-[#94a3b8] text-sm md:text-base max-w-md">
-            Cuatro terminaciones decorativas que se adaptan a cualquier proyecto
-          </p>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-[20px] w-full" role="list" aria-label="Catálogo de diseños">
-          {[
-            { img: imgRectangle, badge: "Césped", name: "Césped Natural", desc: "Textura orgánica vegetal" },
-            { img: imgRectangle1, badge: "Piedra", name: "Piedra Natural", desc: "Acabado mineral premium" },
-            { img: imgRectangle2, badge: "Madera", name: "Madera Natural", desc: "Calidez y textura viva" },
-            { img: imgRectangle3, badge: "Ladrillo", name: "Ladrillo Visto", desc: "Estética urbana industrial" },
-          ].map(({ img, badge, name, desc }) => (
-            <article
-              key={name}
-              role="listitem"
-              className="bg-white dark:bg-[#1a1a1a] border border-[#e2e8f0] dark:border-[#2e2e2e] flex flex-col items-start overflow-hidden rounded-card cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-[#4ade80] dark:hover:border-[#4ade80] group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4ade80]"
-              tabIndex={0}
-              aria-label={`${name} — ${desc}`}
+            <button
+              className="md:hidden flex h-10 w-10 flex-col items-center justify-center gap-[5px] rounded-full"
+              aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((o) => !o)}
             >
-              <div className="relative w-full h-[140px] md:h-[200px] overflow-hidden bg-[#f8fafc] dark:bg-[#222222]">
-                <img alt={`${name}: ${desc}`} className="absolute inset-0 object-cover size-full transition-transform duration-500 group-hover:scale-105" src={img} />
-                <div className="absolute bg-[rgba(255,255,255,0.9)] dark:bg-[rgba(26,26,26,0.85)] border border-[rgba(74,222,128,0.25)] flex items-center left-[10px] px-[8px] py-[3px] rounded-full top-[10px]">
-                  <p className="font-['Inter'] font-semibold text-[#15803d] dark:text-[#4ade80] text-xs uppercase tracking-wider">{badge}</p>
-                </div>
-              </div>
-              <div className="bg-white dark:bg-[#1a1a1a] flex flex-col gap-1 items-start p-3 md:p-[16px] w-full">
-                <p className="font-['Inter'] font-bold text-[#0f172a] dark:text-white text-sm md:text-sm">{name}</p>
-                <p className="font-['Inter'] font-normal text-[#64748b] dark:text-[#94a3b8] text-xs">{desc}</p>
-              </div>
-            </article>
+              <span className={`block h-[1.5px] w-5 bg-current transition-transform ${menuOpen ? "rotate-45 translate-y-[3.25px]" : ""}`} />
+              <span className={`block h-[1.5px] w-5 bg-current transition-transform ${menuOpen ? "-rotate-45 -translate-y-[3.25px]" : ""}`} />
+            </button>
+          </div>
+        </nav>
+
+        <div className={`md:hidden mx-auto mt-2 max-w-[1200px] overflow-hidden rounded-card border border-black/5 dark:border-white/[0.07] bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-xl transition-all duration-300 ${menuOpen ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 -translate-y-2 pointer-events-none"}`}>
+          {NAV_LINKS.map(({ label, id }) => (
+            <a key={id} href={`#${id}`} onClick={(e) => handleNavClick(e, id)} className={`block px-6 py-4 font-display text-2xl ${activeSection === id ? "text-[#111111] dark:text-white" : "text-[#7a7a7a]"}`}>
+              {label}
+            </a>
           ))}
         </div>
-      </section>
+      </header>
 
-      {/* ── Product info ── */}
-      <section
-        className="bg-white dark:bg-[#1a1a1a] flex flex-col md:flex-row overflow-hidden w-full transition-colors duration-300"
-        aria-labelledby="product-heading"
-      >
-        <div className="relative w-full md:w-[580px] h-[280px] md:h-[520px] shrink-0 overflow-hidden group bg-[#f8fafc] dark:bg-[#222222]">
-          <img alt="Rollo de Deco-Membrana decorativo" className="absolute inset-0 object-cover size-full transition-transform duration-700 group-hover:scale-105" src={imgRectangle4} />
-        </div>
-        <div className="flex flex-1 flex-col gap-5 md:gap-[24px] items-start min-w-0 px-5 py-8 md:pl-[64px] md:pr-[80px] md:py-[64px]">
-          <div className="bg-[#ecfdf5] dark:bg-[#1f2f1f] flex items-center px-[12px] py-[5px] rounded-full shrink-0" aria-hidden="true">
-            <p className="font-['Inter'] font-semibold text-[#15803d] dark:text-[#4ade80] text-xs uppercase tracking-wider">Producto</p>
-          </div>
-          <h2 id="product-heading" className="font-['Inter'] font-extrabold text-[#0f172a] dark:text-white text-2xl md:text-4xl leading-tight">
-            Rollos decorativos listos para una nueva categoría de impermeabilización.
-          </h2>
-          <p className="font-['Inter'] font-normal text-[#64748b] dark:text-[#94a3b8] text-sm leading-relaxed">
-            DECO-MEMBRANA combina la funcionalidad de la membrana asfáltica con terminaciones visuales premium. Una solución pensada para carreteros, distribuidores, arquitectos y constructoras que buscan diferenciarse.
-          </p>
-          <div className="flex gap-6 md:gap-[32px] items-start w-full" aria-label="Estadísticas del producto">
-            <div className="flex flex-col gap-1 items-start">
-              <p className="font-['Inter'] font-extrabold text-[#4ade80] text-2xl md:text-[28px]" aria-label="Más de 10 años de vida útil">10+</p>
-              <p className="font-['Inter'] font-normal text-[#64748b] dark:text-[#94a3b8] text-xs">Años de vida útil</p>
+      <main id="main">
+        {/* ── Hero ── */}
+        <section id="inicio" aria-labelledby="hero-heading" className="mesh relative overflow-hidden px-5 pt-36 md:pt-44 pb-16 md:pb-24">
+          <div className="mx-auto max-w-[1200px] text-center">
+            <div className="reveal mx-auto inline-flex items-center gap-2 rounded-full border border-black/10 dark:border-white/15 bg-white/60 dark:bg-white/5 px-3 py-1.5 backdrop-blur">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#22c55e]" />
+              <span className="text-xs font-medium text-[#3d3d3d] dark:text-[#cfcfcf]">Deco-Membrana · Nueva categoría</span>
             </div>
-            <div className="bg-[#e2e8f0] dark:bg-[#1e293b] h-[40px] md:h-[48px] shrink-0 w-px" aria-hidden="true" />
-            <div className="flex flex-col gap-1 items-start">
-              <p className="font-['Inter'] font-extrabold text-[#4ade80] text-2xl md:text-[28px]" aria-label="4 terminaciones premium">4</p>
-              <p className="font-['Inter'] font-normal text-[#64748b] dark:text-[#94a3b8] text-xs">Terminaciones premium</p>
-            </div>
-            <div className="bg-[#e2e8f0] dark:bg-[#1e293b] h-[40px] md:h-[48px] shrink-0 w-px" aria-hidden="true" />
-            <div className="flex flex-col gap-1 items-start">
-              <p className="font-['Inter'] font-extrabold text-[#4ade80] text-2xl md:text-[28px]" aria-label="100% de estanqueidad garantizada">100%</p>
-              <p className="font-['Inter'] font-normal text-[#64748b] dark:text-[#94a3b8] text-xs">Estanqueidad garantizada</p>
-            </div>
-          </div>
-          <a href="#contacto" onClick={(e) => handleNavClick(e, "contacto")}
-            className="bg-[#4ade80] flex items-center px-6 py-3 md:px-[24px] md:py-[12px] rounded-full shrink-0 font-['Inter'] font-bold text-[#0a0f1a] text-sm whitespace-nowrap transition-all duration-200 hover:bg-[#22c55e] hover:shadow-lg hover:-translate-y-0.5 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22c55e]">
-            Ver más
-          </a>
-        </div>
-      </section>
-
-      {/* ── Applications ── */}
-      <section
-        id="aplicaciones"
-        className="bg-white dark:bg-[#111111] flex flex-col gap-8 md:gap-[48px] items-center px-5 py-10 md:p-[80px] w-full transition-colors duration-300"
-        aria-labelledby="apps-heading"
-      >
-        <div className="flex flex-col gap-3 items-center text-center">
-          <div className="bg-[#ecfdf5] dark:bg-[#1f2f1f] flex items-center px-[12px] py-[5px] rounded-full" aria-hidden="true">
-            <p className="font-['Inter'] font-semibold text-[#15803d] dark:text-[#4ade80] text-xs uppercase tracking-wider">Usos</p>
-          </div>
-          <h2 id="apps-heading" className="font-['Inter'] font-extrabold text-[#0f172a] dark:text-white text-[28px] md:text-[40px]">Aplicaciones</h2>
-          <p className="font-['Inter'] font-normal text-[#64748b] dark:text-[#94a3b8] text-sm md:text-base max-w-md">
-            Ideal para terrazas, techos, balcones, agotes y proyectos arquitectónicos
-          </p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 md:gap-[24px] w-full" role="list" aria-label="Aplicaciones del producto">
-          {[
-            { img: imgRectangle5, icon: imgMapPin, iconAlt: "Ubicación", badge: "Aplicación", name: "Ladrillo en Terraza", desc: "Acabado ladrillo visto sobre superficie horizontal con máxima protección hidrófuga." },
-            { img: imgRectangle6, icon: imgGrid, iconAlt: "Grilla", badge: "Línea Completa", name: "Línea Completa", desc: "Toda la gama Deco-Membrana disponible para distribuidores y proyectos de gran escala." },
-          ].map(({ img, icon, iconAlt, badge, name, desc }) => (
-            <article
-              key={name}
-              role="listitem"
-              className="bg-white dark:bg-[#1a1a1a] border border-[#e2e8f0] dark:border-[#2e2e2e] flex flex-col items-start overflow-hidden rounded-card cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-[#4ade80] dark:hover:border-[#4ade80] group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4ade80]"
-              tabIndex={0}
-              aria-label={`${name}: ${desc}`}
-            >
-              <div className="relative w-full h-[200px] md:h-[260px] overflow-hidden">
-                <img alt={`${name} — imagen de aplicación`} className="absolute inset-0 object-cover size-full transition-transform duration-500 group-hover:scale-105" src={img} />
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent from-50% to-[#0f172a]" aria-hidden="true" />
-              </div>
-              <div className="bg-white dark:bg-[#1a1a1a] flex flex-col gap-2 items-start pb-5 pt-4 px-5 md:pb-[24px] md:pt-[20px] md:px-[24px] w-full">
-                <div className="flex gap-2 items-center">
-                  <img src={icon} alt={iconAlt} className="block size-[14px]" />
-                  <p className="font-['Inter'] font-semibold text-[#15803d] dark:text-[#4ade80] text-xs uppercase tracking-wider">{badge}</p>
-                </div>
-                <p className="font-['Inter'] font-bold text-[#0f172a] dark:text-white text-base md:text-lg">{name}</p>
-                <p className="font-['Inter'] font-normal text-[#64748b] dark:text-[#94a3b8] text-sm leading-relaxed">{desc}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Warranty ── */}
-      <section
-        id="garantía"
-        className="bg-white dark:bg-[#1a1a1a] border-[#e2e8f0] dark:border-[#2e2e2e] border-b border-t flex flex-col lg:flex-row gap-10 lg:gap-[80px] items-start px-5 py-10 md:px-[80px] md:py-[72px] w-full transition-colors duration-300"
-        aria-labelledby="warranty-heading"
-      >
-        <div className="flex flex-col gap-5 items-start w-full lg:w-[480px] lg:shrink-0">
-          <div className="bg-[#ecfdf5] dark:bg-[#1f2f1f] flex items-center px-[12px] py-[5px] rounded-full shrink-0" aria-hidden="true">
-            <p className="font-['Inter'] font-semibold text-[#15803d] dark:text-[#4ade80] text-xs uppercase tracking-wider">Garantía</p>
-          </div>
-          <h2 id="warranty-heading" className="font-['Inter'] font-extrabold text-[#0f172a] dark:text-white text-[28px] md:text-[40px] leading-tight">
-            Garantía de<br />Durabilidad
-          </h2>
-          <p className="font-['Inter'] font-normal text-[#64748b] dark:text-[#94a3b8] text-sm leading-relaxed">
-            DECO-MEMBRANA es un desarrollo de Rolhas SAS, producido bajo estándares de calidad orientados a la durabilidad, resistencia exterior y estabilidad visual del laminado decorativo.
-          </p>
-          <p className="font-['Inter'] font-normal text-[#64748b] dark:text-[#94a3b8] text-sm leading-relaxed">
-            El producto incorpora materiales seleccionados para aplicaciones en techos y superficies exteriores, ofreciendo una terminación estética premium con alta resistencia al intemperie y exposición UV.
-          </p>
-          <p className="font-['Inter'] font-normal text-[#64748b] dark:text-[#94a3b8] text-sm leading-relaxed">
-            La garantía cubre defectos técnicos, adherencia superficial, estanqueidad y durabilidad del acabado decorativo bajo condiciones normales de uso e instalación adecuada.
-          </p>
-          <a href="#contacto" onClick={(e) => handleNavClick(e, "contacto")}
-            className="bg-transparent dark:bg-transparent border border-[#4ade80] flex items-center px-6 py-3 rounded-full shrink-0 font-['Inter'] font-semibold text-[#15803d] dark:text-[#4ade80] text-sm whitespace-nowrap transition-all duration-200 hover:bg-[#4ade80] hover:text-[#0a0f1a] hover:shadow-md hover:-translate-y-0.5 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4ade80]">
-            Condiciones de Garantía
-          </a>
-        </div>
-        <div className="grid grid-cols-2 gap-4 w-full">
-          {[
-            { stat: "10+", title: "Años de durabilidad", desc: "Garantizado bajo uso normal" },
-            { stat: "UV", title: "Resistencia solar", desc: "Protección UV certificada" },
-            { stat: "100%", title: "Estanqueidad", desc: "Impermeable total garantizado" },
-            { stat: null, title: "Calidad Certificada", desc: "Rolhas SAS — Argentina", icon: imgAward },
-          ].map(({ stat, title, desc, icon }) => (
-            <div
-              key={title}
-              className="bg-white dark:bg-[#222222] border border-[#e2e8f0] dark:border-[#2e2e2e] flex flex-col gap-2 items-start p-5 md:p-[28px] rounded-card transition-all duration-300 hover:shadow-lg hover:border-[#4ade80] dark:hover:border-[#4ade80] hover:-translate-y-0.5"
-            >
-              {stat ? (
-                <p className="font-['Inter'] font-extrabold text-[#4ade80] text-4xl md:text-[40px]">{stat}</p>
-              ) : (
-                <img src={icon} alt="Premio" className="block size-[20px]" />
-              )}
-              <p className="font-['Inter'] font-semibold text-[#0f172a] dark:text-white text-sm md:text-sm">{title}</p>
-              <p className="font-['Inter'] font-normal text-[#64748b] dark:text-[#94a3b8] text-xs">{desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Contact ── */}
-      <section
-        id="contacto"
-        className="bg-white dark:bg-[#111111] flex flex-col lg:flex-row gap-10 lg:gap-[80px] items-start px-5 py-10 md:p-[80px] w-full transition-colors duration-300"
-        aria-labelledby="contact-heading"
-      >
-        <div className="flex flex-col gap-8 items-start w-full lg:w-[480px] lg:shrink-0">
-          <div className="flex flex-col gap-4 items-start">
-            <div className="bg-[#ecfdf5] dark:bg-[#1f2f1f] flex items-center px-[12px] py-[5px] rounded-full shrink-0" aria-hidden="true">
-              <p className="font-['Inter'] font-semibold text-[#15803d] dark:text-[#4ade80] text-xs uppercase tracking-wider">Contacto</p>
-            </div>
-            <h2 id="contact-heading" className="font-['Inter'] font-extrabold text-[#0f172a] dark:text-white text-[28px] md:text-4xl leading-tight">
-              Solicitá información<br />para tu zona.
-            </h2>
-            <p className="font-['Inter'] font-normal text-[#64748b] dark:text-[#94a3b8] text-sm leading-relaxed">
-              Recibirá al forma técnica, precios, disponibilidad y condiciones para distribuidores, arquitectos y constructoras.
+            <h1 id="hero-heading" className="reveal mx-auto mt-6 max-w-[14ch] font-display text-[44px] sm:text-[64px] md:text-[88px] font-medium leading-[0.98] tracking-[-0.035em]">
+              Impermeabilización <span className="text-[#8a8a8a] dark:text-[#7a7a7a]">con diseño.</span>
+            </h1>
+            <p className="reveal mx-auto mt-6 max-w-[52ch] text-base md:text-lg leading-relaxed text-[#4a4a4a] dark:text-[#b5b5b5]">
+              La primera membrana que además de proteger, transforma las superficies en espacios decorativos. Tecnología premium con terminación estética.
             </p>
+            <div className="reveal mt-9 flex flex-wrap justify-center gap-3">
+              <a href="#contacto" onClick={(e) => handleNavClick(e, "contacto")} className={btnDark}><Roll>Solicitar cotización</Roll></a>
+              <a href="#diseños" onClick={(e) => handleNavClick(e, "diseños")} className={btnGhost}><Roll>Ver diseños</Roll></a>
+            </div>
           </div>
-          <address className="flex flex-col gap-5 items-start w-full not-italic">
-            {[
-              { icon: imgGlobe, alt: "Sitio web", text: "www.techomax.com.ar" },
-              { icon: imgPhone, alt: "Teléfono", text: "+54 9 11 2187-9069" },
-              { icon: imgMail, alt: "Email", text: "techomaxargentina@gmail.com" },
-              { icon: imgMapPin1, alt: "Dirección", text: "Aroz 2470 · Berazategui · Buenos Aires · Argentina" },
-            ].map(({ icon, alt, text }) => (
-              <div key={text} className="flex gap-3 items-center">
-                <div className="bg-[#ecfdf5] dark:bg-[#1f2f1f] flex flex-col items-center justify-center rounded-control shrink-0 size-[36px]">
-                  <img src={icon} alt={alt} className="block size-[16px]" />
+
+          {/* Tabbed showcase */}
+          <div className="reveal mx-auto mt-16 md:mt-20 max-w-[1100px]">
+            <div role="tablist" aria-label="Terminaciones" className="mx-auto mb-4 flex w-fit max-w-full gap-1 overflow-x-auto rounded-full border border-black/10 dark:border-white/10 bg-white/60 dark:bg-white/5 p-1 backdrop-blur">
+              {DESIGNS.map((d, i) => (
+                <button
+                  key={d.key}
+                  role="tab"
+                  aria-selected={tab === i}
+                  aria-controls="showcase-panel"
+                  onClick={() => setTab(i)}
+                  className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 ${tab === i ? "bg-[#111111] text-white dark:bg-white dark:text-[#111111]" : "text-[#5c5c5c] dark:text-[#a3a3a3] hover:text-[#111111] dark:hover:text-white"}`}
+                >
+                  {d.key}
+                </button>
+              ))}
+            </div>
+            <div id="showcase-panel" role="tabpanel" className="relative overflow-hidden rounded-[24px] border border-white/60 dark:border-white/10 bg-[#e9e7e2] dark:bg-[#222222] p-2 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.35)]">
+              <div className="relative aspect-[16/8] overflow-hidden rounded-[18px]">
+                {[imgHero, ...DESIGNS.slice(1).map((d) => d.img)].map((src, i) => (
+                  <img key={src} src={i === 0 ? imgHero : src} alt={i === tab ? `Terminación ${DESIGNS[i].name}` : ""} className={`absolute inset-0 size-full object-cover transition-all duration-700 ${tab === i ? "opacity-100 scale-100" : "opacity-0 scale-105"}`} />
+                ))}
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-5 md:p-8 text-left">
+                  <p className="font-display text-xl md:text-3xl font-medium text-white">{DESIGNS[tab].name}</p>
+                  <p className="mt-1 text-sm text-white/80">{DESIGNS[tab].desc}</p>
                 </div>
-                <p className="font-['Inter'] font-normal text-[#64748b] dark:text-[#94a3b8] text-sm break-all">{text}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Features strip ── */}
+        <section aria-label="Características principales" className="border-y border-black/[0.06] dark:border-white/[0.06] bg-white dark:bg-[#1a1a1a]">
+          <ul className="mx-auto grid max-w-[1200px] grid-cols-2 md:grid-cols-5">
+            {FEATURES.map(({ icon, label, sub }, i) => (
+              <li key={label} className={`flex items-center gap-3 px-5 py-6 ${i ? "md:border-l" : ""} border-black/[0.06] dark:border-white/[0.06]`}>
+                <img src={icon} alt="" className="size-5 dark:invert" />
+                <div>
+                  <p className="text-sm font-semibold">{label}</p>
+                  <p className="text-xs text-[#6b6b6b] dark:text-[#9a9a9a]">{sub}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* ── Mission ── */}
+        <section aria-label="Propuesta" className="px-5 py-24 md:py-36">
+          <ScrollWords
+            className="mx-auto max-w-[1000px] font-display text-3xl md:text-[52px] font-medium leading-[1.12] tracking-[-0.025em]"
+            text="DECO-MEMBRANA combina la funcionalidad de la membrana asfáltica con terminaciones visuales premium — pensada para distribuidores, arquitectos y constructoras que buscan diferenciarse."
+          />
+        </section>
+
+        {/* ── Designs ── */}
+        <section id="diseños" aria-labelledby="designs-heading" className="px-5 pb-24 md:pb-32">
+          <div className="mx-auto max-w-[1200px]">
+            <div className="mb-12 grid gap-6 md:grid-cols-[1fr_auto] md:items-end">
+              <div>
+                <Eyebrow>Catálogo</Eyebrow>
+                <h2 id="designs-heading" className="mt-3 font-display text-4xl md:text-6xl font-medium tracking-[-0.03em]">Diseños disponibles</h2>
+              </div>
+              <p className="max-w-sm text-[#5c5c5c] dark:text-[#a3a3a3]">Cuatro terminaciones decorativas que se adaptan a cualquier proyecto.</p>
+            </div>
+            <ul className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+              {DESIGNS.map(({ img, key, name, desc }, i) => (
+                <li key={key} className="reveal group" style={{ transitionDelay: `${i * 80}ms` }}>
+                  <div className="relative aspect-[3/4] overflow-hidden rounded-card bg-[#ecebe7] dark:bg-[#222222]">
+                    <img src={img} alt={`${name}: ${desc}`} className="size-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    <span className="absolute left-3 top-3 rounded-full bg-white/85 dark:bg-black/60 px-2.5 py-1 text-[11px] font-medium backdrop-blur">0{i + 1}</span>
+                  </div>
+                  <p className="mt-4 font-display text-lg font-medium">{name}</p>
+                  <p className="mt-1 text-sm text-[#6b6b6b] dark:text-[#9a9a9a]">{desc}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* ── Product: alternating feature blocks ── */}
+        <section aria-labelledby="product-heading" className="bg-white dark:bg-[#1a1a1a] px-5 py-24 md:py-32 border-y border-black/[0.06] dark:border-white/[0.06]">
+          <div className="mx-auto max-w-[1200px] space-y-24 md:space-y-32">
+            <div className="text-center">
+              <Eyebrow>Producto</Eyebrow>
+              <h2 id="product-heading" className="mx-auto mt-3 max-w-[20ch] font-display text-4xl md:text-6xl font-medium tracking-[-0.03em]">Rollos decorativos para una nueva categoría.</h2>
+            </div>
+            {[
+              { img: imgRectangle4, alt: "Rollo de Deco-Membrana decorativo", title: "Listo para instalar, como una membrana convencional", body: "Se aplica con el mismo proceso que la membrana asfáltica: sin capacitación extra para el instalador y con una terminación que no necesita pintura ni revestimiento.", tag: "Instalación" },
+              { img: imgRectangle5, alt: "Ladrillo visto aplicado en terraza", title: "Ladrillo en terraza", body: "Acabado ladrillo visto sobre superficie horizontal con máxima protección hidrófuga. Ideal para terrazas, techos, balcones y proyectos arquitectónicos.", tag: "Aplicaciones", id: "aplicaciones" },
+              { img: imgRectangle6, alt: "Línea completa de Deco-Membrana", title: "Línea completa para distribuidores", body: "Toda la gama Deco-Membrana disponible para distribuidores y proyectos de gran escala, con stock y condiciones comerciales por zona.", tag: "Línea completa" },
+            ].map((b, i) => (
+              <div key={b.title} id={b.id} className={`reveal grid items-center gap-10 md:gap-16 md:grid-cols-2 scroll-mt-28 ${i % 2 ? "md:[&>*:first-child]:order-2" : ""}`}>
+                <div className="mesh rounded-[24px] p-3 md:p-5">
+                  <img src={b.img} alt={b.alt} className="aspect-[4/3] w-full rounded-[16px] object-cover shadow-[0_30px_60px_-30px_rgba(0,0,0,0.4)]" />
+                </div>
+                <div>
+                  <Eyebrow>{b.tag}</Eyebrow>
+                  <h3 className="mt-3 font-display text-3xl md:text-[40px] font-medium leading-tight tracking-[-0.02em]">{b.title}</h3>
+                  <p className="mt-5 max-w-md leading-relaxed text-[#5c5c5c] dark:text-[#a3a3a3]">{b.body}</p>
+                  <a href="#contacto" onClick={(e) => handleNavClick(e, "contacto")} className={`${btnDark} mt-8`}><Roll>Pedir información</Roll></a>
+                </div>
               </div>
             ))}
-          </address>
-        </div>
+          </div>
+        </section>
 
-        <div className="bg-white dark:bg-[#1a1a1a] border border-[#e2e8f0] dark:border-[#2e2e2e] flex flex-1 flex-col gap-4 items-start min-w-0 p-6 md:p-[40px] rounded-card w-full transition-colors duration-300">
-          <h3 className="font-['Inter'] font-bold text-[#0f172a] dark:text-white text-lg">Envianos tu consulta</h3>
-          <p className="font-['Inter'] font-normal text-[#64748b] dark:text-[#94a3b8] text-sm">Completá el formulario y te respondemos a la brevedad.</p>
-          <form className="flex flex-col gap-4 w-full" aria-label="Formulario de contacto" onSubmit={(e) => e.preventDefault()}>
-            <div className="flex flex-col sm:flex-row gap-3 w-full">
-              <div className="flex flex-1 flex-col gap-[6px] items-start min-w-0">
-                <label htmlFor="nombre" className="font-['Inter'] font-semibold text-[#64748b] dark:text-[#94a3b8] text-xs uppercase tracking-wider">Nombre y Apellido</label>
-                <input id="nombre" type="text" placeholder="Tu nombre completo" autoComplete="name"
-                  className="bg-white dark:bg-[#222222] border border-[#cbd5e1] dark:border-[#383838] h-[42px] px-[14px] rounded-control w-full font-['Inter'] text-[#0f172a] dark:text-white text-sm placeholder:text-[#94a3b8] dark:placeholder:text-[#475569] transition-colors duration-200 hover:border-[#94a3b8] dark:hover:border-[#555555] focus:border-[#4ade80] focus:outline-none focus:ring-2 focus:ring-[#4ade80]/20" />
-              </div>
-              <div className="flex flex-1 flex-col gap-[6px] items-start min-w-0">
-                <label htmlFor="email" className="font-['Inter'] font-semibold text-[#64748b] dark:text-[#94a3b8] text-xs uppercase tracking-wider">Email</label>
-                <input id="email" type="email" placeholder="correo@ejemplo.com" autoComplete="email"
-                  className="bg-white dark:bg-[#222222] border border-[#cbd5e1] dark:border-[#383838] h-[42px] px-[14px] rounded-control w-full font-['Inter'] text-[#0f172a] dark:text-white text-sm placeholder:text-[#94a3b8] dark:placeholder:text-[#475569] transition-colors duration-200 hover:border-[#94a3b8] dark:hover:border-[#555555] focus:border-[#4ade80] focus:outline-none focus:ring-2 focus:ring-[#4ade80]/20" />
-              </div>
+        {/* ── Estimator ── */}
+        <section aria-labelledby="calc-heading" className="px-5 py-24 md:py-32">
+          <div className="mesh reveal mx-auto grid max-w-[1200px] gap-10 rounded-[28px] p-8 md:p-14 md:grid-cols-[1.1fr_1fr] items-center">
+            <div>
+              <Eyebrow>Estimador</Eyebrow>
+              <h2 id="calc-heading" className="mt-3 font-display text-3xl md:text-5xl font-medium tracking-[-0.03em]">¿Cuánta superficie querés transformar?</h2>
+              <label htmlFor="area" className="mt-10 flex items-baseline justify-between text-sm text-[#4a4a4a] dark:text-[#b5b5b5]">
+                Superficie <span className="font-display text-3xl text-[#111111] dark:text-white">{area} m²</span>
+              </label>
+              <input id="area" type="range" min={10} max={1000} step={10} value={area} onChange={(e) => setArea(+e.target.value)} className="mt-4 w-full accent-[#111111] dark:accent-white" />
             </div>
-            <div className="flex flex-col gap-[6px] items-start w-full">
-              <label htmlFor="telefono" className="font-['Inter'] font-semibold text-[#64748b] dark:text-[#94a3b8] text-xs uppercase tracking-wider">Teléfono / Celular</label>
-              <input id="telefono" type="tel" placeholder="+54 9 ..." autoComplete="tel"
-                className="bg-white dark:bg-[#222222] border border-[#cbd5e1] dark:border-[#383838] h-[42px] px-[14px] rounded-control w-full font-['Inter'] text-[#0f172a] dark:text-white text-sm placeholder:text-[#94a3b8] dark:placeholder:text-[#475569] transition-colors duration-200 hover:border-[#94a3b8] dark:hover:border-[#555555] focus:border-[#4ade80] focus:outline-none focus:ring-2 focus:ring-[#4ade80]/20" />
-            </div>
-            <div className="flex flex-col gap-[6px] items-start w-full">
-              <label htmlFor="zona" className="font-['Inter'] font-semibold text-[#64748b] dark:text-[#94a3b8] text-xs uppercase tracking-wider">Zona</label>
-              <div className="relative w-full">
-                <select id="zona" defaultValue=""
-                  className="appearance-none bg-white dark:bg-[#222222] border border-[#cbd5e1] dark:border-[#383838] h-[42px] px-[14px] rounded-control w-full font-['Inter'] text-[#94a3b8] dark:text-[#475569] text-sm transition-colors duration-200 hover:border-[#94a3b8] dark:hover:border-[#555555] focus:border-[#4ade80] focus:outline-none focus:ring-2 focus:ring-[#4ade80]/20 cursor-pointer">
-                  <option value="" disabled>Provincia / Localidad</option>
-                  <option value="buenos-aires">Buenos Aires</option>
-                  <option value="caba">Ciudad Autónoma de Buenos Aires</option>
-                  <option value="cordoba">Córdoba</option>
-                  <option value="santa-fe">Santa Fe</option>
-                  <option value="otra">Otra</option>
-                </select>
-                <img src={imgChevronDown} alt="" aria-hidden="true" className="absolute right-[14px] top-1/2 -translate-y-1/2 block size-[14px] pointer-events-none" />
-              </div>
-            </div>
-            <div className="flex flex-col gap-[6px] items-start w-full">
-              <label htmlFor="mensaje" className="font-['Inter'] font-semibold text-[#64748b] dark:text-[#94a3b8] text-xs uppercase tracking-wider">Consulta sobre el proyecto o producto</label>
-              <textarea id="mensaje" placeholder="Contanos sobre tu proyecto, aplicación o necesidad..." rows={4}
-                className="bg-white dark:bg-[#222222] border border-[#cbd5e1] dark:border-[#383838] p-[14px] rounded-control w-full font-['Inter'] text-[#0f172a] dark:text-white text-sm placeholder:text-[#94a3b8] dark:placeholder:text-[#475569] transition-colors duration-200 hover:border-[#94a3b8] dark:hover:border-[#555555] focus:border-[#4ade80] focus:outline-none focus:ring-2 focus:ring-[#4ade80]/20 resize-none" />
-            </div>
-            <button type="submit"
-              className="bg-[#4ade80] flex h-[48px] items-center justify-center rounded-full w-full font-['Inter'] font-bold text-[#0a0f1a] text-sm transition-all duration-200 hover:bg-[#22c55e] hover:shadow-lg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22c55e] cursor-pointer">
-              Primer Contacto
-            </button>
-          </form>
-        </div>
-      </section>
+            <dl className="grid grid-cols-2 gap-3">
+              {[
+                { k: "Rollos (10 m²)", v: rolls.toString() },
+                { k: "Inversión ref.", v: `US$ ${(area * RATE_PER_M2).toLocaleString("es-AR")}` },
+                { k: "Vida útil", v: `${years}+ años` },
+                { k: "Estanqueidad", v: "100%" },
+              ].map(({ k, v }) => (
+                <div key={k} className="rounded-card bg-white/70 dark:bg-black/30 p-5 backdrop-blur">
+                  <dt className="text-xs text-[#6b6b6b] dark:text-[#9a9a9a]">{k}</dt>
+                  <dd className="mt-2 font-display text-2xl md:text-3xl font-medium tabular-nums">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </section>
 
-      {/* ── Footer ── */}
+        {/* ── Warranty / results ── */}
+        <section id="garantía" aria-labelledby="warranty-heading" className="bg-[#111111] dark:bg-[#0b0b0b] px-5 py-24 md:py-32 text-white">
+          <div className="mx-auto grid max-w-[1200px] gap-16 md:grid-cols-[1fr_1.2fr]">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9a9a9a]">Garantía</p>
+              <h2 id="warranty-heading" className="mt-3 font-display text-4xl md:text-6xl font-medium tracking-[-0.03em]">Garantía de durabilidad.</h2>
+              <div className="mt-8 space-y-4 leading-relaxed text-[#b5b5b5]">
+                <p>DECO-MEMBRANA es un desarrollo de Rolhas SAS, producido bajo estándares de calidad orientados a la durabilidad, resistencia exterior y estabilidad visual del laminado decorativo.</p>
+                <p>La garantía cubre defectos técnicos, adherencia superficial, estanqueidad y durabilidad del acabado decorativo bajo condiciones normales de uso e instalación adecuada.</p>
+              </div>
+              <a href="#contacto" onClick={(e) => handleNavClick(e, "contacto")} className="group mt-10 inline-flex items-center rounded-full bg-white px-6 py-3 text-sm font-medium text-[#111111] active:scale-95 transition-transform"><Roll>Condiciones de garantía</Roll></a>
+            </div>
+            <ul className="grid grid-cols-2 gap-px overflow-hidden rounded-card bg-white/10">
+              {[
+                { stat: "10+", title: "Años de durabilidad", desc: "Garantizado bajo uso normal" },
+                { stat: "UV", title: "Resistencia solar", desc: "Protección UV certificada" },
+                { stat: "100%", title: "Estanqueidad", desc: "Impermeable total garantizado" },
+                { stat: null, title: "Calidad certificada", desc: "Rolhas SAS — Argentina" },
+              ].map(({ stat, title, desc }) => (
+                <li key={title} className="reveal flex flex-col justify-between gap-10 bg-[#111111] dark:bg-[#0b0b0b] p-6 md:p-8">
+                  {stat ? <p className="font-display text-5xl md:text-7xl font-medium tracking-[-0.04em]">{stat}</p> : <img src={imgAward} alt="Premio" className="size-12 invert" />}
+                  <div>
+                    <p className="font-medium">{title}</p>
+                    <p className="mt-1 text-sm text-[#9a9a9a]">{desc}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* ── Contact ── */}
+        <section id="contacto" aria-labelledby="contact-heading" className="mesh px-5 py-24 md:py-32">
+          <div className="mx-auto grid max-w-[1200px] gap-12 md:grid-cols-2">
+            <div>
+              <Eyebrow>Contacto</Eyebrow>
+              <h2 id="contact-heading" className="mt-3 font-display text-4xl md:text-6xl font-medium tracking-[-0.03em]">Solicitá información para tu zona.</h2>
+              <p className="mt-6 max-w-md text-[#4a4a4a] dark:text-[#b5b5b5]">Recibí la ficha técnica, precios, disponibilidad y condiciones para distribuidores, arquitectos y constructoras.</p>
+              <address className="mt-10 space-y-4 not-italic">
+                {[
+                  { icon: imgGlobe, alt: "Sitio web", text: "www.techomax.com.ar" },
+                  { icon: imgPhone, alt: "Teléfono", text: "+54 9 11 2187-9069" },
+                  { icon: imgMail, alt: "Email", text: "techomaxargentina@gmail.com" },
+                  { icon: imgMapPin1, alt: "Dirección", text: "Aroz 2470 · Berazategui · Buenos Aires · Argentina" },
+                ].map(({ icon, alt, text }) => (
+                  <div key={text} className="flex items-center gap-3 text-sm">
+                    <span className="flex size-9 items-center justify-center rounded-full bg-white/70 dark:bg-white/10"><img src={icon} alt={alt} className="size-4 dark:invert" /></span>
+                    {text}
+                  </div>
+                ))}
+              </address>
+            </div>
+            <form onSubmit={(e) => e.preventDefault()} className="rounded-[24px] border border-white/70 dark:border-white/10 bg-white/80 dark:bg-[#1a1a1a]/85 p-6 md:p-8 backdrop-blur-xl shadow-[0_30px_60px_-30px_rgba(0,0,0,0.25)] space-y-4">
+              <div>
+                <h3 className="font-display text-2xl font-medium">Envianos tu consulta</h3>
+                <p className="mt-1 text-sm text-[#6b6b6b] dark:text-[#9a9a9a]">Completá el formulario y te respondemos a la brevedad.</p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div><label htmlFor="nombre" className="mb-1.5 block text-xs font-medium">Nombre y Apellido</label><input id="nombre" type="text" placeholder="Tu nombre completo" autoComplete="name" className={fieldCls} /></div>
+                <div><label htmlFor="email" className="mb-1.5 block text-xs font-medium">Email</label><input id="email" type="email" placeholder="correo@ejemplo.com" autoComplete="email" className={fieldCls} /></div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div><label htmlFor="telefono" className="mb-1.5 block text-xs font-medium">Teléfono / Celular</label><input id="telefono" type="tel" placeholder="+54 9 ..." autoComplete="tel" className={fieldCls} /></div>
+                <div>
+                  <label htmlFor="zona" className="mb-1.5 block text-xs font-medium">Zona</label>
+                  <select id="zona" defaultValue="" className={fieldCls}>
+                    <option value="" disabled>Provincia / Localidad</option>
+                    <option value="buenos-aires">Buenos Aires</option>
+                    <option value="caba">Ciudad Autónoma de Buenos Aires</option>
+                    <option value="cordoba">Córdoba</option>
+                    <option value="santa-fe">Santa Fe</option>
+                    <option value="otra">Otra</option>
+                  </select>
+                </div>
+              </div>
+              <div><label htmlFor="mensaje" className="mb-1.5 block text-xs font-medium">Consulta sobre el proyecto o producto</label><textarea id="mensaje" rows={4} placeholder="Contanos sobre tu proyecto, aplicación o necesidad..." className={`${fieldCls} resize-none`} /></div>
+              <button type="submit" className={`${btnDark} w-full justify-center`}><Roll>Enviar consulta</Roll></button>
+            </form>
+          </div>
+        </section>
       </main>
 
-      <footer className="bg-white dark:bg-[#1a1a1a] border-[#e2e8f0] dark:border-[#2e2e2e] border-t flex flex-col sm:flex-row gap-4 items-center justify-between px-5 md:px-[80px] py-5 md:py-[24px] w-full transition-colors duration-300">
-        <p className="font-['Inter'] font-normal text-[#64748b] dark:text-[#94a3b8] text-xs text-center sm:text-left">
-          DECO-MEMBRANA | Rolhas SAS · Techomax Argentina SAS — Innovación en impermeabilización decorativa
-        </p>
-        <nav aria-label="Redes sociales" className="flex gap-5 items-center shrink-0">
-          {[
-            { href: "https://instagram.com", src: imgInstagram, label: "Instagram" },
-            { href: "https://facebook.com", src: imgFacebook, label: "Facebook" },
-            { href: "https://linkedin.com", src: imgLinkedin, label: "LinkedIn" },
-          ].map(({ href, src, label }) => (
-            <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label}
-              className="block transition-opacity duration-200 hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4ade80] rounded-control">
-              <img src={src} alt={label} className="block size-[16px] dark:invert dark:opacity-60" />
-            </a>
-          ))}
-        </nav>
+      <footer className="bg-[#fbfaf8] dark:bg-[#111111] px-5 pt-16 pb-10">
+        <div className="mx-auto max-w-[1200px]">
+          <div className="grid gap-10 md:grid-cols-[1.5fr_1fr_1fr]">
+            <p className="max-w-sm font-display text-2xl font-medium tracking-[-0.02em]">Innovación en impermeabilización decorativa.</p>
+            <ul className="space-y-2 text-sm">
+              {NAV_LINKS.map(({ label, id }) => (
+                <li key={id}><a href={`#${id}`} onClick={(e) => handleNavClick(e, id)} className="text-[#5c5c5c] dark:text-[#a3a3a3] hover:text-[#111111] dark:hover:text-white">{label}</a></li>
+              ))}
+            </ul>
+            <nav aria-label="Redes sociales" className="flex gap-2 md:justify-end items-start">
+              {[
+                { href: "https://instagram.com", src: imgInstagram, label: "Instagram" },
+                { href: "https://facebook.com", src: imgFacebook, label: "Facebook" },
+                { href: "https://linkedin.com", src: imgLinkedin, label: "LinkedIn" },
+              ].map(({ href, src, label }) => (
+                <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="flex size-10 items-center justify-center rounded-full border border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+                  <img src={src} alt="" className="size-4 dark:invert" />
+                </a>
+              ))}
+            </nav>
+          </div>
+          <p className="mt-16 border-t border-black/[0.06] dark:border-white/[0.06] pt-6 text-xs text-[#6b6b6b] dark:text-[#8a8a8a]">
+            DECO-MEMBRANA | Rolhas SAS · Techomax Argentina SAS — © {new Date().getFullYear()}
+          </p>
+        </div>
       </footer>
     </div>
   );

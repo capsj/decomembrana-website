@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@400;500;600&display=swap');
 @import 'tailwindcss';
 
 @font-face {
@@ -12,6 +12,11 @@
 @theme {
   --radius-control: 8px;
   --radius-card: 16px;
+}
+
+@theme {
+  --font-display: 'Inter Tight', 'Inter', sans-serif;
+  --font-sans: 'Inter', sans-serif;
 }
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -41,4 +46,29 @@
       transition-duration: 0.01ms !important;
     }
   }
+}
+
+@layer components {
+  .mesh {
+    background-color: #f6f5f2;
+    background-image:
+      radial-gradient(40% 60% at 15% 20%, rgba(186, 214, 255, 0.85), transparent 70%),
+      radial-gradient(35% 55% at 85% 15%, rgba(255, 214, 190, 0.8), transparent 70%),
+      radial-gradient(45% 60% at 70% 90%, rgba(196, 236, 208, 0.75), transparent 70%),
+      radial-gradient(35% 50% at 25% 95%, rgba(226, 210, 255, 0.7), transparent 70%);
+  }
+  .dark .mesh {
+    background-color: #111111;
+    background-image:
+      radial-gradient(40% 60% at 15% 20%, rgba(60, 90, 150, 0.35), transparent 70%),
+      radial-gradient(35% 55% at 85% 15%, rgba(150, 90, 60, 0.28), transparent 70%),
+      radial-gradient(45% 60% at 70% 90%, rgba(60, 130, 90, 0.28), transparent 70%),
+      radial-gradient(35% 50% at 25% 95%, rgba(110, 80, 160, 0.25), transparent 70%);
+  }
+  /* Rolling label: duplicated text slides up on hover */
+  .roll { display: inline-flex; flex-direction: column; height: 1.25em; overflow: hidden; line-height: 1.25em; }
+  .roll > span { transition: transform 0.45s cubic-bezier(0.65, 0, 0.35, 1); }
+  .group:hover .roll > span { transform: translateY(-100%); }
+  .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1); }
+  .reveal.in { opacity: 1; transform: none; }
 }
