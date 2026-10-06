@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
 const assetPathPrefix = "/assets";
-const imgHero = `${assetPathPrefix}/0addd.png`;
 const imgHero1 = `${assetPathPrefix}/e9166.png`;
 const imgRectangle = `${assetPathPrefix}/55989.png`;
 const imgRectangle1 = `${assetPathPrefix}/845a3.png`;
@@ -311,8 +310,8 @@ export default function App() {
             </div>
             <div id="showcase-panel" role="tabpanel" className="relative overflow-hidden rounded-[24px] border border-white/60 dark:border-white/10 bg-[#e9e7e2] dark:bg-[#222222] p-2 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.35)]">
               <div className="relative aspect-[16/8] overflow-hidden rounded-[18px]">
-                {[imgHero, ...DESIGNS.slice(1).map((d) => d.img)].map((src, i) => (
-                  <img key={src} src={i === 0 ? imgHero : src} alt={i === tab ? `Terminación ${DESIGNS[i].name}` : ""} className={`absolute inset-0 size-full object-cover transition-all duration-700 ${tab === i ? "opacity-100 scale-100" : "opacity-0 scale-105"}`} />
+                {DESIGNS.map(({ img, name }, i) => (
+                  <img key={img} src={img} alt={i === tab ? `Terminación ${name}` : ""} className={`absolute inset-0 size-full object-cover transition-all duration-700 ${tab === i ? "opacity-100 scale-100" : "opacity-0 scale-105"}`} />
                 ))}
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-5 md:p-8 text-left">
                   <p className="font-display text-xl md:text-3xl font-medium text-white">{DESIGNS[tab].name}</p>
@@ -432,7 +431,7 @@ export default function App() {
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9a9a9a]">Garantía</p>
               <h2 id="warranty-heading" className="mt-3 font-display text-4xl md:text-6xl font-medium tracking-[-0.03em]">Garantía de durabilidad.</h2>
               <div className="mt-8 space-y-4 leading-relaxed text-[#b5b5b5]">
-                <p>DECO-MEMBRANA es un desarrollo de Rolhas SAS, producido bajo estándares de calidad orientados a la durabilidad, resistencia exterior y estabilidad visual del laminado decorativo.</p>
+                <p>DECO-MEMBRANA es un desarrollo de Techomax, producido bajo estándares de calidad orientados a la durabilidad, resistencia exterior y estabilidad visual del laminado decorativo.</p>
                 <p>La garantía cubre defectos técnicos, adherencia superficial, estanqueidad y durabilidad del acabado decorativo bajo condiciones normales de uso e instalación adecuada.</p>
               </div>
               <a href="#contacto" onClick={(e) => handleNavClick(e, "contacto")} className="group mt-10 inline-flex items-center rounded-full bg-white px-6 py-3 text-sm font-medium text-[#111111] active:scale-95 transition-transform"><Roll>Condiciones de garantía</Roll></a>
@@ -442,7 +441,7 @@ export default function App() {
                 { stat: "10+", title: "Años de durabilidad", desc: "Garantizado bajo uso normal" },
                 { stat: "UV", title: "Resistencia solar", desc: "Protección UV certificada" },
                 { stat: "100%", title: "Estanqueidad", desc: "Impermeable total garantizado" },
-                { stat: null, title: "Calidad certificada", desc: "Rolhas SAS — Argentina" },
+                { stat: null, title: "Calidad certificada", desc: "Techomax — Argentina" },
               ].map(({ stat, title, desc }) => (
                 <li key={title} className="reveal flex flex-col justify-between gap-10 bg-[#111111] dark:bg-[#0b0b0b] p-6 md:p-8">
                   {stat ? <p className="font-display text-5xl md:text-7xl font-medium tracking-[-0.04em]">{stat}</p> : <img src={imgAward} alt="Premio" className="size-12 invert" />}
@@ -529,7 +528,7 @@ export default function App() {
             </nav>
           </div>
           <p className="mt-16 border-t border-black/[0.06] dark:border-white/[0.06] pt-6 text-xs text-[#6b6b6b] dark:text-[#8a8a8a]">
-            DECO-MEMBRANA | Rolhas SAS · Techomax Argentina SAS — © {new Date().getFullYear()}
+            DECO-MEMBRANA | Techomax — © {new Date().getFullYear()}
           </p>
         </div>
       </footer>
